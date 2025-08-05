@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV三元组解析服务</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border-radius: 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8f0ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .spaces-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .space-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .space-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .space-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .space-info {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .triples-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+        }
+
+        .triple-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .triple-subject {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .triple-predicate {
+            color: #666;
+            font-style: italic;
+        }
+
+        .triple-object {
+            font-weight: 600;
+            color: #764ba2;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .spaces-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 CSV三元组解析服务</h1>
+            <p>支持多知识库的CSV到三元组转换</p>
+        </div>
+
+        <div class="content">
+            <!-- 统计信息 -->
+            <div class="section">
+                <h2>📈 统计信息</h2>
+                <div class="stats" id="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSpaces">0</div>
+                        <div class="stat-label">知识库数量</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTriples">0</div>
+                        <div class="stat-label">三元组总数</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 上传CSV -->
+            <div class="section">
+                <h2>📁 上传CSV文件</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p>拖拽CSV文件到这里，或点击选择文件</p>
+                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="spaceName">知识库名称:</label>
+                    <input type="text" id="spaceName" placeholder="例如: company_data, product_info" required>
+                </div>
+                
+                <button class="btn" id="uploadBtn" disabled>上传并解析</button>
+                
+                <div id="uploadResult"></div>
+            </div>
+
+            <!-- 知识库管理 -->
+            <div class="section">
+                <h2>🗂️ 知识库管理</h2>
+                <button class="btn" onclick="loadSpaces()">刷新知识库列表</button>
+                <div class="spaces-grid" id="spacesGrid">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 三元组查看 -->
+            <div class="section">
+                <h2>🔍 三元组查看</h2>
+                <div class="form-group">
+                    <label for="viewSpace">选择知识库:</label>
+                    <select id="viewSpace">
+                        <option value="">请选择知识库</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="loadTriples()" disabled id="viewTriplesBtn">查看三元组</button>
+                
+                <div class="triples-container" id="triplesContainer" style="display: none;">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API地址配置 - 根据部署环境修改
+        // 本地开发: http://localhost:6408
+        // 服务器部署: http://your-server-ip:6408 或 https://your-domain.com
+        const API_BASE = window.location.origin;    
+        
+        console.log('API_BASE:', API_BASE);
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSpaces();
+            setupFileUpload();
+        });
+
+        // 文件上传设置
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const spaceNameInput = document.getElementById('spaceName');
+
+            // 点击上传区域
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            // 拖拽功能
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    updateUploadButton();
+                }
+            });
+
+            // 文件选择
+            fileInput.addEventListener('change', updateUploadButton);
+            spaceNameInput.addEventListener('input', updateUploadButton);
+
+            // 上传按钮
+            uploadBtn.addEventListener('click', uploadFile);
+        }
+
+        function updateUploadButton() {
+            const fileInput = document.getElementById('fileInput');
+            const spaceNameInput = document.getElementById('spaceName');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            uploadBtn.disabled = !fileInput.files.length || !spaceNameInput.value.trim();
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const spaceNameInput = document.getElementById('spaceName');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const resultDiv = document.getElementById('uploadResult');
+
+            const file = fileInput.files[0];
+            const spaceName = spaceNameInput.value.trim();
+
+            console.log('开始上传文件:', file);
+            console.log('知识库名称:', spaceName);
+
+            if (!file || !spaceName) {
+                console.log('文件或知识库名称为空');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '上传中...';
+            resultDiv.innerHTML = '<div class="loading">正在上传文件...</div>';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                console.log('发送请求到:', `${API_BASE}/parse-csv/${spaceName}`);
+                const response = await fetch(`${API_BASE}/parse-csv/${spaceName}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('响应状态:', response.status);
+                console.log('响应头:', response.headers);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('响应结果:', result);
+
+                if (result.success) {
+                    resultDiv.innerHTML = `<div class="success">✅ ${result.message}</div>`;
+                    fileInput.value = '';
+                    spaceNameInput.value = '';
+                    loadSpaces(); // 刷新知识库列表
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ ${result.message}</div>`;
+                }
+            } catch (error) {
+                console.error('上传错误:', error);
+                resultDiv.innerHTML = `<div class="error">❌ 上传失败: ${error.message}</div>`;
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '上传并解析';
+                updateUploadButton();
+            }
+        }
+
+        async function loadSpaces() {
+            const spacesGrid = document.getElementById('spacesGrid');
+            const viewSpaceSelect = document.getElementById('viewSpace');
+            const stats = document.getElementById('stats');
+
+            try {
+                const response = await fetch(`${API_BASE}/spaces`);
+                const data = await response.json();
+
+                // 更新统计信息
+                const totalSpaces = data.spaces.length;
+                const totalTriples = data.spaces.reduce((sum, space) => sum + space.triple_count, 0);
+                
+                document.getElementById('totalSpaces').textContent = totalSpaces;
+                document.getElementById('totalTriples').textContent = totalTriples;
+
+                // 更新知识库列表
+                if (data.spaces.length === 0) {
+                    spacesGrid.innerHTML = '<div class="loading">暂无知识库</div>';
+                } else {
+                    spacesGrid.innerHTML = data.spaces.map(space => `
+                        <div class="space-card">
+                            <div class="space-name">📁 ${space.name}</div>
+                            <div class="space-info">
+                                <div>三元组数量: ${space.triple_count}</div>
+                                <div>创建时间: ${space.created_at ? new Date(space.created_at).toLocaleString() : '未知'}</div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadTriples('${space.name}')">查看三元组</button>
+                            <button class="btn btn-danger" onclick="deleteSpace('${space.name}')">删除</button>
+                        </div>
+                    `).join('');
+                }
+
+                // 更新选择框
+                viewSpaceSelect.innerHTML = '<option value="">请选择知识库</option>' + 
+                    data.spaces.map(space => `<option value="${space.name}">${space.name} (${space.triple_count}个三元组)</option>`).join('');
+
+            } catch (error) {
+                spacesGrid.innerHTML = `<div class="error">❌ 加载失败: ${error.message}</div>`;
+            }
+        }
+
+        async function loadTriples(spaceName = null) {
+            const targetSpace = spaceName || document.getElementById('viewSpace').value;
+            const triplesContainer = document.getElementById('triplesContainer');
+            const viewTriplesBtn = document.getElementById('viewTriplesBtn');
+
+            if (!targetSpace) {
+                viewTriplesBtn.disabled = true;
+                return;
+            }
+
+            viewTriplesBtn.disabled = false;
+            triplesContainer.style.display = 'block';
+            triplesContainer.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/spaces/${targetSpace}?limit=100`);
+                const data = await response.json();
+
+                if (data.triples.length === 0) {
+                    triplesContainer.innerHTML = '<div class="loading">该知识库暂无三元组</div>';
+                } else {
+                    triplesContainer.innerHTML = `
+                        <div style="margin-bottom: 15px; color: #666;">
+                            共 ${data.total_count} 个三元组，显示前 ${data.triples.length} 个
+                        </div>
+                        ${data.triples.map(triple => `
+                            <div class="triple-item">
+                                <span class="triple-subject">${triple.subject}</span>
+                                <span class="triple-predicate"> ${triple.predicate} </span>
+                                <span class="triple-object">${triple.object}</span>
+                                <div style="font-size: 0.8em; color: #999; margin-top: 5px;">
+                                    类型: ${triple.type} | 创建时间: ${new Date(triple.created_at).toLocaleString()}
+                                </div>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+            } catch (error) {
+                triplesContainer.innerHTML = `<div class="error">❌ 加载失败: ${error.message}</div>`;
+            }
+        }
+
+        async function deleteSpace(spaceName) {
+            if (!confirm(`确定要删除知识库 "${spaceName}" 吗？此操作不可恢复！`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/spaces/${spaceName}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('知识库删除成功！');
+                    loadSpaces();
+                } else {
+                    alert('删除失败: ' + result.message);
+                }
+            } catch (error) {
+                alert('删除失败: ' + error.message);
+            }
+        }
+
+        // 监听选择框变化
+        document.getElementById('viewSpace').addEventListener('change', function() {
+            const viewTriplesBtn = document.getElementById('viewTriplesBtn');
+            viewTriplesBtn.disabled = !this.value;
+        });
+    </script>
+</body>
+</html> 
