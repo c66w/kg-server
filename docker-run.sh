@@ -6,6 +6,7 @@
 DEFAULT_EXTERNAL_PORT=6408
 DEFAULT_INTERNAL_PORT=6408
 DEFAULT_IMAGE_NAME="csv-triple-parser"
+DEFAULT_DOCKERFILE="Dockerfile"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -25,6 +26,7 @@ show_help() {
     echo "  -i, --internal PORT    设置内部端口 (默认: $DEFAULT_INTERNAL_PORT)"
     echo "  -n, --name NAME        设置容器名称 (默认: $DEFAULT_IMAGE_NAME)"
     echo "  -b, --build            构建镜像"
+    echo "  -m, --multi            使用多阶段构建 (Dockerfile.multi)"
     echo "  -d, --detach           后台运行"
     echo "  -h, --help             显示此帮助信息"
     echo ""
@@ -32,6 +34,9 @@ show_help() {
     echo "  $0 -p 9000              # 使用端口9000启动"
     echo "  $0 -p 9000 -i 8000      # 外部端口9000，内部端口8000"
     echo "  $0 -b -d                # 构建镜像并后台运行"
+    echo "  $0 -b -m -d             # 多阶段构建并后台运行"
+    echo ""
+    echo "注意: 使用清华大学镜像源加速构建"
     echo ""
 }
 
@@ -40,7 +45,9 @@ EXTERNAL_PORT=$DEFAULT_EXTERNAL_PORT
 INTERNAL_PORT=$DEFAULT_INTERNAL_PORT
 CONTAINER_NAME=$DEFAULT_IMAGE_NAME
 BUILD_IMAGE=false
+MULTI_STAGE=false
 DETACH_MODE=false
+DOCKERFILE=$DEFAULT_DOCKERFILE
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -58,6 +65,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -b|--build)
             BUILD_IMAGE=true
+            shift
+            ;;
+        -m|--multi)
+            MULTI_STAGE=true
+            DOCKERFILE="Dockerfile.multi"
             shift
             ;;
         -d|--detach)
@@ -82,12 +94,20 @@ echo -e "外部端口: ${GREEN}$EXTERNAL_PORT${NC}"
 echo -e "内部端口: ${GREEN}$INTERNAL_PORT${NC}"
 echo -e "容器名称: ${GREEN}$CONTAINER_NAME${NC}"
 echo -e "构建镜像: ${GREEN}$BUILD_IMAGE${NC}"
+echo -e "多阶段构建: ${GREEN}$MULTI_STAGE${NC}"
+echo -e "Dockerfile: ${GREEN}$DOCKERFILE${NC}"
 echo -e "后台运行: ${GREEN}$DETACH_MODE${NC}"
 echo ""
 
 # 检查Docker是否运行
 if ! docker info > /dev/null 2>&1; then
     echo -e "${RED}错误: Docker未运行，请先启动Docker${NC}"
+    exit 1
+fi
+
+# 检查Dockerfile是否存在
+if [ "$BUILD_IMAGE" = true ] && [ ! -f "$DOCKERFILE" ]; then
+    echo -e "${RED}错误: Dockerfile '$DOCKERFILE' 不存在${NC}"
     exit 1
 fi
 
@@ -100,13 +120,25 @@ fi
 
 # 构建镜像
 if [ "$BUILD_IMAGE" = true ]; then
-    echo -e "${BLUE}构建Docker镜像...${NC}"
-    docker build -t $CONTAINER_NAME .
+    echo -e "${BLUE}构建Docker镜像 (使用清华大学镜像源)...${NC}"
+    echo -e "${YELLOW}Dockerfile: $DOCKERFILE${NC}"
+    
+    # 设置Docker构建参数
+    BUILD_ARGS=""
+    if [ "$MULTI_STAGE" = true ]; then
+        BUILD_ARGS="--target production"
+    fi
+    
+    docker build -f $DOCKERFILE $BUILD_ARGS -t $CONTAINER_NAME .
     if [ $? -ne 0 ]; then
         echo -e "${RED}镜像构建失败${NC}"
         exit 1
     fi
     echo -e "${GREEN}镜像构建成功${NC}"
+    
+    # 显示镜像信息
+    echo -e "${BLUE}镜像信息:${NC}"
+    docker images $CONTAINER_NAME --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 fi
 
 # 创建必要的目录

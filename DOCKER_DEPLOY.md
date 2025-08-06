@@ -9,8 +9,11 @@
 git clone <your-repo-url>
 cd kg-server
 
-# 一键启动（端口6408）
+# 一键启动（端口6408，使用清华大学镜像源）
 ./docker-run.sh -b -d -p 6408
+
+# 多阶段构建（推荐，镜像更小）
+./docker-run.sh -b -m -d -p 6408
 ```
 
 ### 2. 使用Docker Compose
@@ -27,6 +30,13 @@ docker-compose up -d
 ```
 
 ## 📋 部署选项
+
+### 构建方式
+
+| 方式 | Dockerfile | 特点 | 推荐度 |
+|------|------------|------|--------|
+| 单阶段构建 | Dockerfile | 简单快速 | ⭐⭐⭐ |
+| 多阶段构建 | Dockerfile.multi | 镜像更小，更安全 | ⭐⭐⭐⭐⭐ |
 
 ### 端口配置
 
@@ -56,7 +66,16 @@ docker-compose up -d
 http://your-server-ip:6408
 ```
 
-### 示例2：自定义端口
+### 示例2：多阶段构建部署（推荐）
+```bash
+# 使用多阶段构建，镜像更小
+./docker-run.sh -b -m -d -p 6408
+
+# 访问地址
+http://your-server-ip:6408
+```
+
+### 示例3：自定义端口
 ```bash
 # 使用端口9000
 ./docker-run.sh -b -d -p 9000
@@ -65,10 +84,10 @@ http://your-server-ip:6408
 http://your-server-ip:9000
 ```
 
-### 示例3：生产环境部署
+### 示例4：生产环境部署
 ```bash
-# 使用高端口，后台运行
-./docker-run.sh -b -d -p 9090
+# 使用高端口，后台运行，多阶段构建
+./docker-run.sh -b -m -d -p 9090
 
 # 配置防火墙
 sudo ufw allow 9090
@@ -77,16 +96,16 @@ sudo ufw allow 9090
 # nginx配置指向 localhost:9090
 ```
 
-### 示例4：多实例部署
+### 示例5：多实例部署
 ```bash
-# 实例1：端口6408
-./docker-run.sh -b -d -p 6408 -n csv-parser-1
+# 实例1：端口6408，多阶段构建
+./docker-run.sh -b -m -d -p 6408 -n csv-parser-1
 
-# 实例2：端口8080
-./docker-run.sh -b -d -p 8080 -n csv-parser-2
+# 实例2：端口8080，多阶段构建
+./docker-run.sh -b -m -d -p 8080 -n csv-parser-2
 
-# 实例3：端口8081
-./docker-run.sh -b -d -p 8081 -n csv-parser-3
+# 实例3：端口8081，多阶段构建
+./docker-run.sh -b -m -d -p 8081 -n csv-parser-3
 ```
 
 ## 🔧 管理命令
@@ -127,7 +146,42 @@ docker stop csv-triple-parser
 docker rm csv-triple-parser
 
 # 重新构建并启动
-./docker-run.sh -b -d -p 8080
+./docker-run.sh -b -m -d -p 6408
+```
+
+## 🚀 清华大学镜像源配置
+
+### 镜像源说明
+本项目已配置使用清华大学镜像源，包括：
+
+1. **Debian软件源**: `mirrors.tuna.tsinghua.edu.cn`
+2. **PyPI镜像源**: `pypi.tuna.tsinghua.edu.cn`
+3. **Docker Hub镜像**: 可配置使用阿里云镜像
+
+### 优势
+- ⚡ **构建速度**: 国内访问速度更快
+- 📦 **下载稳定**: 避免网络连接问题
+- 🔒 **安全可靠**: 官方镜像源，安全有保障
+
+### 手动配置Docker镜像源（可选）
+```bash
+# 创建Docker配置目录
+sudo mkdir -p /etc/docker
+
+# 配置Docker镜像源
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ]
+}
+EOF
+
+# 重启Docker服务
+sudo systemctl daemon-reload
+sudo systemctl restart docker
 ```
 
 ## 📊 监控和日志

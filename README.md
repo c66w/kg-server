@@ -103,16 +103,19 @@ docker-compose logs -f
 
 #### 方式2：使用Docker脚本（功能最全）
 ```bash
-# 1. 构建镜像并启动（端口6408）
+# 1. 构建镜像并启动（端口6408，使用清华大学镜像源）
 ./docker-run.sh -b -p 6408
 
-# 2. 后台运行（端口9000）
+# 2. 多阶段构建并后台运行（推荐，镜像更小）
+./docker-run.sh -b -m -d -p 6408
+
+# 3. 后台运行（端口9000）
 ./docker-run.sh -b -d -p 9000
 
-# 3. 自定义内部端口
+# 4. 自定义内部端口
 ./docker-run.sh -p 6408 -i 8000
 
-# 4. 查看帮助
+# 5. 查看帮助
 ./docker-run.sh --help
 ```
 
@@ -198,7 +201,9 @@ kg-server/
 ├── gunicorn.conf.py       # Gunicorn配置
 ├── deploy.sh              # 部署脚本
 ├── kg-server.service      # systemd服务配置
-├── Dockerfile             # Docker镜像配置
+├── Dockerfile             # Docker镜像配置（单阶段）
+├── Dockerfile.multi       # Docker镜像配置（多阶段）
+├── .dockerignore          # Docker忽略文件
 ├── docker-compose.yml     # Docker Compose配置
 ├── docker-run.sh          # Docker启动脚本
 ├── .env.example           # 环境变量示例
