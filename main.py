@@ -34,15 +34,9 @@ def validate_file_type(filename: str) -> bool:
 # 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:6408",
-        "http://127.0.0.1:6408",
-        # 添加你的服务器域名，例如：
-        # "https://your-domain.com",
-        "http://1.15.95.222:6408"
-    ],
+    allow_origins=["*"],  # 允许所有域名访问
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -131,23 +125,32 @@ async def parse_csv(space_name: str, file: UploadFile = File(...)):
     上传CSV文件并解析为三元组，存储到指定知识库
     """
     try:
+        print(f"开始处理上传请求: space_name={space_name}, filename={file.filename}")
+        
         # 验证知识库名称
         if not validate_space_name(space_name):
-            raise HTTPException(status_code=400, detail="知识库名称只能包含字母、数字、下划线和连字符")
+            error_msg = f"知识库名称只能包含字母、数字、下划线和连字符: {space_name}"
+            print(f"验证失败: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
         
         # 验证文件类型
         if not validate_file_type(file.filename):
-            raise HTTPException(status_code=400, detail="只支持CSV文件")
+            error_msg = f"只支持CSV文件: {file.filename}"
+            print(f"文件类型验证失败: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
         
         # 确保知识库目录存在
         ensure_knowledge_base_dir()
         
         # 读取CSV文件内容
         content = await file.read()
+        print(f"文件大小: {len(content)} bytes")
         
         # 检查文件大小
         if len(content) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail=f"文件大小超过限制 ({MAX_FILE_SIZE // 1024 // 1024}MB)")
+            error_msg = f"文件大小超过限制 ({MAX_FILE_SIZE // 1024 // 1024}MB)"
+            print(f"文件大小超限: {error_msg}")
+            raise HTTPException(status_code=413, detail=error_msg)
         
         # 尝试多种编码
         encodings = ['utf-8', 'gbk', 'gb2312', 'latin-1']
@@ -156,24 +159,32 @@ async def parse_csv(space_name: str, file: UploadFile = File(...)):
         for encoding in encodings:
             try:
                 csv_content = content.decode(encoding)
+                print(f"成功使用编码: {encoding}")
                 break
             except UnicodeDecodeError:
+                print(f"编码 {encoding} 失败")
                 continue
         
         if csv_content is None:
-            raise HTTPException(status_code=400, detail="无法解码文件，请确保文件编码为UTF-8、GBK或GB2312")
+            error_msg = "无法解码文件，请确保文件编码为UTF-8、GBK或GB2312"
+            print(f"编码失败: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
         
         # 解析为三元组
+        print("开始解析CSV为三元组...")
         new_triples = csv_to_triples(csv_content, space_name)
+        print(f"解析完成，生成 {len(new_triples)} 个三元组")
         
         # 加载现有知识库数据
         existing_triples = load_knowledge_base(space_name)
+        print(f"现有三元组数量: {len(existing_triples)}")
         
         # 合并新数据
         all_triples = existing_triples + new_triples
         
         # 保存到知识库
         save_knowledge_base(space_name, all_triples)
+        print(f"保存完成，总三元组数量: {len(all_triples)}")
         
         return JSONResponse({
             "success": True,
@@ -186,9 +197,14 @@ async def parse_csv(space_name: str, file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
+        error_msg = f"解析失败: {str(e)}"
+        print(f"未预期的错误: {error_msg}")
+        print(f"错误类型: {type(e).__name__}")
+        import traceback
+        print(f"错误堆栈: {traceback.format_exc()}")
         return JSONResponse({
             "success": False,
-            "message": f"解析失败: {str(e)}"
+            "message": error_msg
         }, status_code=400)
 
 @app.get("/spaces")
