@@ -227,6 +227,19 @@
             border: 1px solid #c3e6cb;
         }
 
+        .success h4 {
+            margin: 0 0 10px 0;
+            color: #155724;
+        }
+
+        .success .file-info {
+            background: rgba(255,255,255,0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
         .error {
             background: #f8d7da;
             color: #721c24;
@@ -314,16 +327,18 @@
                 <h2>📁 上传CSV文件</h2>
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-icon">📄</div>
-                    <p>拖拽CSV文件到这里，或点击选择文件</p>
+                    <p><strong>第一步：选择CSV文件</strong></p>
+                    <p style="font-size: 0.9em; opacity: 0.8;">拖拽CSV文件到这里，或点击选择文件</p>
                     <input type="file" id="fileInput" accept=".csv" style="display: none;">
                 </div>
                 
                 <div class="form-group">
-                    <label for="spaceName">知识库名称:</label>
+                    <label for="spaceName"><strong>第二步：输入知识库名称</strong></label>
                     <input type="text" id="spaceName" placeholder="例如: company_data, product_info" required>
+                    <small style="color: #666;">知识库名称用于存储和管理您的数据</small>
                 </div>
                 
-                <button class="btn" id="uploadBtn" disabled>上传并解析</button>
+                <button class="btn" id="uploadBtn" disabled><strong>第三步：上传并解析</strong></button>
                 
                 <div id="uploadResult"></div>
             </div>
@@ -355,6 +370,13 @@
         </div>
     </div>
 
+    <!-- 调试信息区域 -->
+    <div style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; max-width: 300px; z-index: 1000;">
+        <div><strong>调试信息:</strong></div>
+        <div id="debugInfo">等待操作...</div>
+        <button onclick="clearDebug()" style="margin-top: 5px; padding: 2px 5px; font-size: 10px;">清除</button>
+    </div>
+
     <script>
         // API地址配置 - 根据部署环境修改
         // 本地开发: http://localhost:6408
@@ -363,9 +385,21 @@
         
         console.log('API_BASE:', API_BASE);
         
+        // 调试信息更新函数
+        function updateDebugInfo(message) {
+            const debugInfo = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugInfo.innerHTML = `[${timestamp}] ${message}<br>` + debugInfo.innerHTML;
+        }
+        
+        function clearDebug() {
+            document.getElementById('debugInfo').innerHTML = '等待操作...';
+        }
+        
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             console.log('页面加载完成');
+            updateDebugInfo('页面加载完成');
             console.log('当前页面URL:', window.location.href);
             console.log('API_BASE:', API_BASE);
             
@@ -396,13 +430,27 @@
 
         // 文件上传设置
         function setupFileUpload() {
+            console.log('setupFileUpload函数被调用');
+            updateDebugInfo('设置文件上传功能');
+            
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('fileInput');
             const uploadBtn = document.getElementById('uploadBtn');
             const spaceNameInput = document.getElementById('spaceName');
 
+            console.log('setupFileUpload获取到的元素:', {
+                uploadArea: uploadArea,
+                fileInput: fileInput,
+                uploadBtn: uploadBtn,
+                spaceNameInput: spaceNameInput
+            });
+
             // 点击上传区域
-            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('click', () => {
+                console.log('上传区域被点击');
+                updateDebugInfo('上传区域被点击');
+                fileInput.click();
+            });
 
             // 拖拽功能
             uploadArea.addEventListener('dragover', (e) => {
@@ -420,16 +468,77 @@
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     fileInput.files = files;
+                    updateDebugInfo(`拖拽文件: ${files[0].name}`);
                     updateUploadButton();
                 }
             });
 
             // 文件选择
-            fileInput.addEventListener('change', updateUploadButton);
-            spaceNameInput.addEventListener('input', updateUploadButton);
+            fileInput.addEventListener('change', () => {
+                console.log('文件选择改变:', fileInput.files);
+                updateDebugInfo(`选择文件: ${fileInput.files[0]?.name || '无文件'}`);
+                
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileSize = (file.size / 1024).toFixed(2);
+                    const fileSizeText = fileSize > 1024 ? 
+                        `${(fileSize / 1024).toFixed(2)} MB` : 
+                        `${fileSize} KB`;
+                    
+                    // 显示文件选择成功提示
+                    const resultDiv = document.getElementById('uploadResult');
+                    resultDiv.innerHTML = `
+                        <div class="success" style="background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9;">
+                            <h4>📄 文件已选择</h4>
+                            <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.3); border-radius: 5px;">
+                                <strong>文件信息：</strong><br>
+                                📄 文件名：${file.name}<br>
+                                📏 文件大小：${fileSizeText}<br>
+                                📋 文件类型：CSV文件
+                            </div>
+                            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                                💡 请在下方输入知识库名称，然后点击"上传并解析"按钮。
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 自动聚焦到知识库名称输入框
+                    spaceNameInput.focus();
+                }
+                
+                updateUploadButton();
+            });
+            spaceNameInput.addEventListener('input', () => {
+                console.log('知识库名称输入:', spaceNameInput.value);
+                updateDebugInfo(`输入知识库名称: ${spaceNameInput.value}`);
+                
+                const hasFile = fileInput.files.length > 0;
+                const hasSpaceName = spaceNameInput.value.trim().length > 0;
+                
+                if (hasFile && hasSpaceName) {
+                    // 显示准备上传提示
+                    const resultDiv = document.getElementById('uploadResult');
+                    const currentContent = resultDiv.innerHTML;
+                    if (currentContent.includes('文件已选择')) {
+                        resultDiv.innerHTML = currentContent.replace(
+                            '💡 请在下方输入知识库名称，然后点击"上传并解析"按钮。',
+                            '✅ 准备就绪！点击"上传并解析"按钮开始处理文件。'
+                        );
+                    }
+                }
+                
+                updateUploadButton();
+            });
 
             // 上传按钮
-            uploadBtn.addEventListener('click', uploadFile);
+            uploadBtn.addEventListener('click', () => {
+                console.log('上传按钮被点击');
+                updateDebugInfo('上传按钮被点击');
+                uploadFile();
+            });
+            
+            console.log('事件监听器设置完成');
+            updateDebugInfo('事件监听器设置完成');
         }
 
         function updateUploadButton() {
@@ -437,20 +546,56 @@
             const spaceNameInput = document.getElementById('spaceName');
             const uploadBtn = document.getElementById('uploadBtn');
             
-            uploadBtn.disabled = !fileInput.files.length || !spaceNameInput.value.trim();
+            const hasFile = fileInput.files.length > 0;
+            const hasSpaceName = spaceNameInput.value.trim().length > 0;
+            const shouldEnable = hasFile && hasSpaceName;
+            
+            console.log('updateUploadButton状态:', {
+                hasFile: hasFile,
+                hasSpaceName: hasSpaceName,
+                shouldEnable: shouldEnable,
+                fileCount: fileInput.files.length,
+                spaceNameValue: spaceNameInput.value
+            });
+            
+            uploadBtn.disabled = !shouldEnable;
+            
+            // 根据状态改变按钮样式
+            if (shouldEnable) {
+                uploadBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
+                uploadBtn.style.transform = 'scale(1.05)';
+                uploadBtn.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.4)';
+            } else {
+                uploadBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                uploadBtn.style.transform = 'scale(1)';
+                uploadBtn.style.boxShadow = 'none';
+            }
+            
+            console.log('上传按钮状态:', uploadBtn.disabled ? '禁用' : '启用');
+            updateDebugInfo(`按钮状态: ${uploadBtn.disabled ? '禁用' : '启用'}`);
         }
 
         async function uploadFile() {
+            console.log('uploadFile函数被调用');
+            
             const fileInput = document.getElementById('fileInput');
             const spaceNameInput = document.getElementById('spaceName');
             const uploadBtn = document.getElementById('uploadBtn');
             const resultDiv = document.getElementById('uploadResult');
+
+            console.log('获取到的元素:', {
+                fileInput: fileInput,
+                spaceNameInput: spaceNameInput,
+                uploadBtn: uploadBtn,
+                resultDiv: resultDiv
+            });
 
             const file = fileInput.files[0];
             const spaceName = spaceNameInput.value.trim();
 
             console.log('开始上传文件:', file);
             console.log('知识库名称:', spaceName);
+            console.log('API_BASE:', API_BASE);
 
             if (!file || !spaceName) {
                 console.log('文件或知识库名称为空');
@@ -459,7 +604,14 @@
 
             uploadBtn.disabled = true;
             uploadBtn.textContent = '上传中...';
-            resultDiv.innerHTML = '<div class="loading">正在上传文件...</div>';
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    <div>📤 正在上传文件...</div>
+                    <div style="font-size: 0.9em; margin-top: 5px; opacity: 0.8;">
+                        文件名：${file.name} | 大小：${(file.size / 1024).toFixed(2)} KB
+                    </div>
+                </div>
+            `;
 
             const formData = new FormData();
             formData.append('file', file);
@@ -482,7 +634,31 @@
                 console.log('响应结果:', result);
 
                 if (result.success) {
-                    resultDiv.innerHTML = `<div class="success">✅ ${result.message}</div>`;
+                    // 格式化文件大小
+                    const fileSize = (file.size / 1024).toFixed(2);
+                    const fileSizeText = fileSize > 1024 ? 
+                        `${(fileSize / 1024).toFixed(2)} MB` : 
+                        `${fileSize} KB`;
+                    
+                    // 创建详细的上传成功提示
+                    const successHtml = `
+                        <div class="success">
+                            <h4>✅ 上传成功！</h4>
+                            <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.3); border-radius: 5px;">
+                                <strong>文件信息：</strong><br>
+                                📄 文件名：${file.name}<br>
+                                📏 文件大小：${fileSizeText}<br>
+                                🗂️ 知识库：${spaceName}<br>
+                                📊 解析结果：${result.new_triples.length} 个新三元组<br>
+                                📈 知识库总计：${result.total_triples} 个三元组
+                            </div>
+                            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                                💡 提示：文件已成功解析并存储到知识库中，您可以在下方查看知识库列表。
+                            </div>
+                        </div>
+                    `;
+                    
+                    resultDiv.innerHTML = successHtml;
                     fileInput.value = '';
                     spaceNameInput.value = '';
                     loadSpaces(); // 刷新知识库列表
