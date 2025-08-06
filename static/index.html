@@ -365,9 +365,34 @@
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成');
+            console.log('当前页面URL:', window.location.href);
+            console.log('API_BASE:', API_BASE);
+            
+            // 测试API连接
+            testApiConnection();
+            
             loadSpaces();
             setupFileUpload();
         });
+
+        // 测试API连接
+        async function testApiConnection() {
+            try {
+                console.log('测试API连接...');
+                const response = await fetch(`${API_BASE}/api`);
+                console.log('API测试响应状态:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API测试成功:', data);
+                } else {
+                    console.warn('API测试失败:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('API连接测试失败:', error);
+            }
+        }
 
         // 文件上传设置
         function setupFileUpload() {
@@ -479,9 +504,21 @@
             const viewSpaceSelect = document.getElementById('viewSpace');
             const stats = document.getElementById('stats');
 
+            console.log('开始加载知识库列表...');
+            console.log('API_BASE:', API_BASE);
+            console.log('请求URL:', `${API_BASE}/spaces`);
+
             try {
                 const response = await fetch(`${API_BASE}/spaces`);
+                console.log('响应状态:', response.status);
+                console.log('响应头:', response.headers);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('响应数据:', data);
 
                 // 更新统计信息
                 const totalSpaces = data.spaces.length;
@@ -512,7 +549,23 @@
                     data.spaces.map(space => `<option value="${space.name}">${space.name} (${space.triple_count}个三元组)</option>`).join('');
 
             } catch (error) {
-                spacesGrid.innerHTML = `<div class="error">❌ 加载失败: ${error.message}</div>`;
+                console.error('加载知识库失败:', error);
+                console.error('错误详情:', {
+                    message: error.message,
+                    stack: error.stack,
+                    API_BASE: API_BASE,
+                    url: `${API_BASE}/spaces`
+                });
+                
+                spacesGrid.innerHTML = `
+                    <div class="error">
+                        ❌ 加载失败: ${error.message}
+                        <br>
+                        <small>请检查服务是否正常运行</small>
+                        <br>
+                        <button class="btn btn-secondary" onclick="loadSpaces()" style="margin-top: 10px;">重试</button>
+                    </div>
+                `;
             }
         }
 
