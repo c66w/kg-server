@@ -91,7 +91,7 @@ nohup gunicorn main:app -c gunicorn.conf.py > logs/app.log 2>&1 &
 cp .env.example .env
 
 # 2. 编辑.env文件，设置端口
-# EXTERNAL_PORT=8080  # 对外暴露的端口
+# EXTERNAL_PORT=6408  # 对外暴露的端口
 # INTERNAL_PORT=6408  # 容器内部端口
 
 # 3. 启动服务
@@ -103,14 +103,14 @@ docker-compose logs -f
 
 #### 方式2：使用Docker脚本（功能最全）
 ```bash
-# 1. 构建镜像并启动（端口8080）
-./docker-run.sh -b -p 8080
+# 1. 构建镜像并启动（端口6408）
+./docker-run.sh -b -p 6408
 
 # 2. 后台运行（端口9000）
 ./docker-run.sh -b -d -p 9000
 
 # 3. 自定义内部端口
-./docker-run.sh -p 8080 -i 8000
+./docker-run.sh -p 6408 -i 8000
 
 # 4. 查看帮助
 ./docker-run.sh --help
@@ -121,10 +121,10 @@ docker-compose logs -f
 # 1. 构建镜像
 docker build -t csv-triple-parser .
 
-# 2. 运行容器（端口8080）
+# 2. 运行容器（端口6408）
 docker run -d \
   --name csv-parser \
-  -p 8080:6408 \
+  -p 6408:6408 \
   -e PORT=6408 \
   -e HOST=0.0.0.0 \
   -v $(pwd)/knowledge_bases:/app/knowledge_bases \

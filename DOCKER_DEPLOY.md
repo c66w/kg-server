@@ -9,8 +9,8 @@
 git clone <your-repo-url>
 cd kg-server
 
-# 一键启动（端口8080）
-./docker-run.sh -b -d -p 8080
+# 一键启动（端口6408）
+./docker-run.sh -b -d -p 6408
 ```
 
 ### 2. 使用Docker Compose
@@ -32,7 +32,7 @@ docker-compose up -d
 
 | 方式 | 外部端口 | 内部端口 | 说明 |
 |------|----------|----------|------|
-| 默认 | 8080 | 6408 | 推荐配置 |
+| 默认 | 6408 | 6408 | 推荐配置 |
 | 自定义 | 任意 | 6408 | 通过参数指定 |
 | 高端口 | 9000+ | 6408 | 避免端口冲突 |
 
@@ -40,7 +40,7 @@ docker-compose up -d
 
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
-| `EXTERNAL_PORT` | 8080 | 对外暴露的端口 |
+| `EXTERNAL_PORT` | 6408 | 对外暴露的端口 |
 | `INTERNAL_PORT` | 6408 | 容器内部端口 |
 | `PORT` | 6408 | 应用监听端口 |
 | `HOST` | 0.0.0.0 | 应用监听地址 |
@@ -49,11 +49,11 @@ docker-compose up -d
 
 ### 示例1：标准部署
 ```bash
-# 使用默认端口8080
-./docker-run.sh -b -d -p 8080
+# 使用默认端口6408
+./docker-run.sh -b -d -p 6408
 
 # 访问地址
-http://your-server-ip:8080
+http://your-server-ip:6408
 ```
 
 ### 示例2：自定义端口
@@ -79,14 +79,14 @@ sudo ufw allow 9090
 
 ### 示例4：多实例部署
 ```bash
-# 实例1：端口8080
-./docker-run.sh -b -d -p 8080 -n csv-parser-1
+# 实例1：端口6408
+./docker-run.sh -b -d -p 6408 -n csv-parser-1
 
-# 实例2：端口8081
-./docker-run.sh -b -d -p 8081 -n csv-parser-2
+# 实例2：端口8080
+./docker-run.sh -b -d -p 8080 -n csv-parser-2
 
-# 实例3：端口8082
-./docker-run.sh -b -d -p 8082 -n csv-parser-3
+# 实例3：端口8081
+./docker-run.sh -b -d -p 8081 -n csv-parser-3
 ```
 
 ## 🔧 管理命令
@@ -147,7 +147,7 @@ docker logs csv-triple-parser 2>&1 | grep ERROR
 ### 健康检查
 ```bash
 # 检查服务是否响应
-curl http://localhost:8080/api
+curl http://localhost:6408/api
 
 # 检查健康状态
 docker inspect csv-triple-parser | grep Health -A 10
@@ -158,10 +158,10 @@ docker inspect csv-triple-parser | grep Health -A 10
 ### 防火墙设置
 ```bash
 # Ubuntu/Debian
-sudo ufw allow 8080
+sudo ufw allow 6408
 
 # CentOS/RHEL
-sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --permanent --add-port=6408/tcp
 sudo firewall-cmd --reload
 ```
 
@@ -172,7 +172,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://localhost:6408;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -188,7 +188,7 @@ server {
 #### 1. 端口被占用
 ```bash
 # 检查端口占用
-netstat -tulpn | grep :8080
+netstat -tulpn | grep :6408
 
 # 使用其他端口
 ./docker-run.sh -b -d -p 9090
@@ -231,7 +231,7 @@ docker run -d \
   --name csv-parser \
   --memory=512m \
   --cpus=1.0 \
-  -p 8080:6408 \
+  -p 6408:6408 \
   csv-triple-parser
 ```
 
@@ -240,7 +240,7 @@ docker run -d \
 # 使用命名卷
 docker run -d \
   --name csv-parser \
-  -p 8080:6408 \
+  -p 6408:6408 \
   -v csv_data:/app/knowledge_bases \
   -v csv_logs:/app/logs \
   csv-triple-parser
@@ -261,10 +261,10 @@ docker rm csv-triple-parser 2>/dev/null
 git pull
 
 # 重新部署
-./docker-run.sh -b -d -p 8080
+./docker-run.sh -b -d -p 6408
 
 # 发送通知
-echo "部署完成: http://$(hostname -I | awk '{print $1}'):8080"
+echo "部署完成: http://$(hostname -I | awk '{print $1}'):6408"
 ```
 
 ### 定时备份

@@ -5,7 +5,7 @@ services:
     build: .
     container_name: csv-triple-parser
     ports:
-      - "${EXTERNAL_PORT:-8080}:${INTERNAL_PORT:-6408}"
+      - "${EXTERNAL_PORT:-6408}:${INTERNAL_PORT:-6408}"
     environment:
       - PORT=${INTERNAL_PORT:-6408}
       - HOST=0.0.0.0
