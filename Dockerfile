@@ -20,8 +20,12 @@ COPY . .
 # 创建必要的目录
 RUN mkdir -p knowledge_bases logs
 
-# 暴露端口
-EXPOSE 6408
+# 设置环境变量
+ENV PORT=6408
+ENV HOST=0.0.0.0
+
+# 暴露端口（默认6408，可通过环境变量覆盖）
+EXPOSE ${PORT}
 
 # 启动命令
-CMD ["gunicorn", "main:app", "-c", "gunicorn.conf.py"] 
+CMD ["sh", "-c", "gunicorn main:app -c gunicorn.conf.py --bind ${HOST}:${PORT}"] 

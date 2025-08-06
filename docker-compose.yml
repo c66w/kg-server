@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  csv-triple-parser:
+    build: .
+    container_name: csv-triple-parser
+    ports:
+      - "${EXTERNAL_PORT:-8080}:${INTERNAL_PORT:-6408}"
+    environment:
+      - PORT=${INTERNAL_PORT:-6408}
+      - HOST=0.0.0.0
+    volumes:
+      - ./knowledge_bases:/app/knowledge_bases
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${INTERNAL_PORT:-6408}/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s 

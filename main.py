@@ -268,4 +268,15 @@ async def api_info():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=6408) 
+    import os
+    
+    # 从环境变量获取端口，默认为6408
+    port = int(os.getenv('PORT', 6408))
+    host = os.getenv('HOST', '0.0.0.0')
+    
+    print(f"🚀 启动CSV三元组解析服务...")
+    print(f"📍 服务地址: http://{host}:{port}")
+    print(f"📖 API文档: http://{host}:{port}/docs")
+    print(f"🌐 Web界面: http://{host}:{port}")
+    
+    uvicorn.run(app, host=host, port=port) 

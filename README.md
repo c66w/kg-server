@@ -83,13 +83,60 @@ gunicorn main:app -c gunicorn.conf.py
 nohup gunicorn main:app -c gunicorn.conf.py > logs/app.log 2>&1 &
 ```
 
-### Docker部署
+### Docker部署（推荐）
+
+#### 方式1：使用Docker Compose（最简单）
 ```bash
-# 构建镜像
+# 1. 复制环境变量文件
+cp .env.example .env
+
+# 2. 编辑.env文件，设置端口
+# EXTERNAL_PORT=8080  # 对外暴露的端口
+# INTERNAL_PORT=6408  # 容器内部端口
+
+# 3. 启动服务
+docker-compose up -d
+
+# 4. 查看日志
+docker-compose logs -f
+```
+
+#### 方式2：使用Docker脚本（功能最全）
+```bash
+# 1. 构建镜像并启动（端口8080）
+./docker-run.sh -b -p 8080
+
+# 2. 后台运行（端口9000）
+./docker-run.sh -b -d -p 9000
+
+# 3. 自定义内部端口
+./docker-run.sh -p 8080 -i 8000
+
+# 4. 查看帮助
+./docker-run.sh --help
+```
+
+#### 方式3：直接使用Docker命令
+```bash
+# 1. 构建镜像
 docker build -t csv-triple-parser .
 
-# 运行容器
-docker run -d -p 6408:6408 --name csv-parser csv-triple-parser
+# 2. 运行容器（端口8080）
+docker run -d \
+  --name csv-parser \
+  -p 8080:6408 \
+  -e PORT=6408 \
+  -e HOST=0.0.0.0 \
+  -v $(pwd)/knowledge_bases:/app/knowledge_bases \
+  -v $(pwd)/logs:/app/logs \
+  --restart unless-stopped \
+  csv-triple-parser
+
+# 3. 查看日志
+docker logs -f csv-parser
+
+# 4. 停止服务
+docker stop csv-parser
 ```
 
 ### systemd服务
@@ -151,6 +198,12 @@ kg-server/
 ├── gunicorn.conf.py       # Gunicorn配置
 ├── deploy.sh              # 部署脚本
 ├── kg-server.service      # systemd服务配置
+├── Dockerfile             # Docker镜像配置
+├── docker-compose.yml     # Docker Compose配置
+├── docker-run.sh          # Docker启动脚本
+├── .env.example           # 环境变量示例
+├── .github/workflows/     # GitHub Actions
+│   └── ci.yml            # CI/CD配置
 └── README.md              # 项目说明
 ```
 
