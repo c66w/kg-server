@@ -36,7 +36,7 @@ show_help() {
     echo "  $0 -b -d                # 构建镜像并后台运行"
     echo "  $0 -b -m -d             # 多阶段构建并后台运行"
     echo ""
-    echo "注意: 使用清华大学镜像源加速构建"
+    echo "注意: 使用标准Docker镜像源"
     echo ""
 }
 
@@ -120,7 +120,7 @@ fi
 
 # 构建镜像
 if [ "$BUILD_IMAGE" = true ]; then
-    echo -e "${BLUE}构建Docker镜像 (使用清华大学镜像源)...${NC}"
+    echo -e "${BLUE}构建Docker镜像...${NC}"
     echo -e "${YELLOW}Dockerfile: $DOCKERFILE${NC}"
     
     # 设置Docker构建参数
